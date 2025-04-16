@@ -50,6 +50,11 @@ return 0;
 
 
 
+//...............................//
+//............PARTE 1............//
+//...............................//
+
+
 int creaHvacio(char *fichHash, regConfig *reg){
     FILE *fHash = fopen(fichHash, "wb");
     if(fHash==NULL){
@@ -59,20 +64,23 @@ int creaHvacio(char *fichHash, regConfig *reg){
     reg->numReg=0;
     reg->numRegDes=0;
     reg->nCuboDesAct=reg->nCubos;
+    if(fwrite(reg, sizeof(regConfig), 1, fHash)!=1){
+        return -2;
+    }
 
     tipoCubo cubo;
     cubo.desbordado=0;
     cubo.numRegAsignados=0;
 
-    for (int j=0;j<reg->nCubos;j++){
-        if(fwrite(&cubo,sizeof(cubo),1,fHash)!=1){
+    for (int j=0; j < reg->nCubos; j++){
+        if(fwrite(&cubo,sizeof(tipoCubo),1,fHash)!=1){
             fclose(fHash);
             return -2;
         }
     }
 
     for (int j=0;j<reg->nCubosDes;j++){
-        if(fwrite(&cubo,sizeof(cubo),1,fHash)!=1){
+        if(fwrite(&cubo,sizeof(tipoCubo),1,fHash)!=1){
             fclose(fHash);
             return -2;
         }
@@ -95,22 +103,29 @@ int creaHash(char *fichEntrada, char *fichHash, regConfig *regC){
 
     //crear hash vacio
     if(creaHvacio(fichHash, regC)==-2){
+        printf("Error en creaHvacio..\n");
         return -2;
     }
 
     FILE *fEntrada=fopen(fichEntrada, "rb");
     if(fEntrada==NULL){
+        printf("Error al abrir fEntrada...\n");
         return -1;
     }
 
     FILE *fHash=fopen(fichHash, "r+b");
     if(fHash==NULL){
         fclose(fEntrada);
+        printf("Error al abrir fHash...\n");
         return -2;
     }
 
     tipoReg reg;
+    
     if(fread(&reg, sizeof(tipoReg), 1, fEntrada)!=1){
+        fclose(fEntrada);
+        fclose(fHash);
+        printf("Error al leer fuera del bucle...\n");
         return -1;
     }
 
@@ -118,6 +133,7 @@ int creaHash(char *fichEntrada, char *fichHash, regConfig *regC){
         if(insertar(fHash, &reg, regC)==-2){
             fclose(fHash);
             fclose(fEntrada);
+            printf("Error al insertar registro..\n");
             return -2;
         }
         
@@ -138,6 +154,13 @@ int creaHash(char *fichEntrada, char *fichHash, regConfig *regC){
         return -3;
     }
 
+    fseek(fHash, 0, SEEK_SET);
+    if(fwrite(regC, sizeof(regConfig), 1, fHash) != 1) {
+        fclose(fHash);
+        printf("Error al escribir el regConfig...\n");
+        return -2;
+    }
+
     fclose(fHash);
     return 0;
 
@@ -146,27 +169,33 @@ int creaHash(char *fichEntrada, char *fichHash, regConfig *regC){
 
 int insertar(FILE *f, tipoReg *reg, regConfig *regC){
     tipoCubo cubo;
+    int numcubo=funcionHash(reg, regC->nCubos);
     
-    for (int i = 0; i < regC->nCubos; i++){
-        fseek(f, i*sizeof(tipoCubo), SEEK_SET);
-        if(fread(&cubo, sizeof(tipoCubo), 1, f)!=1){
+    fseek(f, sizeof(regConfig)+numcubo*sizeof(tipoCubo), SEEK_SET);
+    if(fread(&cubo, sizeof(tipoCubo), 1, f)!=1){
+        printf("Error al leer cubo...\n");
+        return -2;
+    }
+
+    if(cubo.numRegAsignados < C){
+        cubo.reg[cubo.numRegAsignados]=*reg;
+        cubo.numRegAsignados++;
+        fseek(f, sizeof(regConfig)+numcubo*sizeof(tipoCubo), SEEK_SET);
+        if(fwrite(&cubo, sizeof(tipoCubo), 1, f)!=1){
+            printf("Error al escribir cubo...\n");
             return -2;
         }
-
-        if(cubo.numRegAsignados < C){
-            cubo.reg[cubo.numRegAsignados]=*reg;
-            cubo.numRegAsignados++;
-            fseek(f, i*sizeof(tipoCubo), SEEK_SET);
-            if(fwrite(&cubo, sizeof(tipoCubo), 1, f)!=1){
-                return -2;
-            }
-            regC->numReg++;
-            return 0;
+        regC->numReg++;
+        return 0;
+    }else{
+        cubo.desbordado=1;
+        fseek(f, sizeof(regConfig)+numcubo*sizeof(tipoCubo), SEEK_SET);
+        if(fwrite(&cubo, sizeof(tipoCubo), 1, f)!=1){
+            printf("Error al escribir flag desbordado...\n");
+            return -2;
         }
+        return desborde(f,reg,regC);
     }
-    
-    
-    return desborde(f,reg,regC);
     
 
 }
@@ -174,27 +203,43 @@ int insertar(FILE *f, tipoReg *reg, regConfig *regC){
 
 int desborde(FILE *fHash, tipoReg *reg, regConfig *regC){
     tipoCubo cubo;
-    long posicion=(regC->nCuboDesAct+regC->nCubos)*sizeof(tipoCubo);
+    
+
+
+    long posicion=sizeof(regConfig)+(regC->nCuboDesAct)*sizeof(tipoCubo);
     fseek(fHash,posicion, SEEK_SET);
     if(fread(&cubo, sizeof(tipoCubo), 1, fHash)!=1){
+        printf("Error al leer cubo desbordado...\n");
         return -2;
     }
     
     if(cubo.numRegAsignados < C){
         //Hay espacio en el cubo de desborde
         cubo.reg[cubo.numRegAsignados]=*reg;
-        regC->numReg++;
+        
         cubo.numRegAsignados++;
-        regC->numRegDes++;
+        
         fseek(fHash,posicion, SEEK_SET);
         if(fwrite(&cubo, sizeof(tipoCubo), 1, fHash)!=1){
+            printf("Error al escribir cubo desbordado...\n");
             return -2;
         }
 
+        regC->numRegDes++;
+        regC->numReg++;
         //si se llena, siguiente cubo
         if(cubo.numRegAsignados==C){
             regC->nCuboDesAct++;
         }
+
+        fseek(fHash,0,SEEK_SET);
+        if(fwrite(regC, sizeof(regConfig), 1, fHash)!=1){
+            printf("Error al escribir config en desbordado...\n");
+            return -2;
+        }
+
+        
+        
 
     }else {
         //no hay espacio, nuevo cubo de desborde
@@ -206,21 +251,51 @@ int desborde(FILE *fHash, tipoReg *reg, regConfig *regC){
 
         fseek(fHash,0,SEEK_END);
         if(fwrite(&nuevo, sizeof(tipoCubo), 1, fHash)!=1){
+            printf("Error al escribir cubo final...\n");
             return -2;
         }
 
         regC->numReg++;
         regC->numRegDes++;
         regC->nCubosDes++;
-        regC->nCuboDesAct=regC->nCubos+regC->nCubosDes-1;
+        regC->nCuboDesAct=regC->nCubosDes-1;
+        fseek(fHash,0,SEEK_SET);
+        if(fwrite(regC, sizeof(regConfig), 1, fHash)!=1){
+            printf("Error al escribir config en desbordado...\n");
+            return -2;
+        }
 
         //poner como desbordado y escribir
         cubo.desbordado=1;
         fseek(fHash,posicion,SEEK_SET);
         if(fwrite(&cubo, sizeof(tipoCubo), 1, fHash)!=1){
+            printf("Error al escribir flag de desbordado en desbordado...\n");
             return -2;
         }
     }
     
+    
+
+
     return 0;
+}
+
+
+
+//...............................//
+//............PARTE 2............//
+//...............................//
+
+
+int busquedaHash(FILE *fHash, tipoReg *reg, tPosicion *posicion){
+
+
+}
+
+
+
+int modificarReg(FILE *fHash, tipoReg *reg, tPosicion *posicion){
+
+
+
 }
