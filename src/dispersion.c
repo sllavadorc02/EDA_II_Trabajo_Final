@@ -288,14 +288,150 @@ int desborde(FILE *fHash, tipoReg *reg, regConfig *regC){
 
 
 int busquedaHash(FILE *fHash, tipoReg *reg, tPosicion *posicion){
+    regConfig regC;
+    fseek(fHash, 0, SEEK_SET);
+    if(fread(&regC, sizeof(regConfig), 1, fHash)!=1){
+        printf("Error al leer el fichero reg...\n");
+        return -2;
+    }
+    
+    int numcubo=funcionHash(reg, regC.nCubos);
+    if(numcubo==-1){
+        printf("Error de funcionHash, parametros incorrectos...\n");
+        return -5;
+    }
 
+    tipoCubo cubo;
+    fseek(fHash, sizeof(regConfig)+numcubo*sizeof(tipoCubo), SEEK_SET);
+    if(fread(&cubo, sizeof(tipoCubo), 1, fHash)!=1){
+        printf("Error al leer un cubo... \n");
+        return -2;
+    }
+
+    posicion->cubo=numcubo; //numero de cubo
+    posicion->cuboDes=-1;
+    if(cubo.desbordado==0){
+        //no está desbordado
+        
+        for(int i=0; i<cubo.numRegAsignados; i++){
+            if(cmpClave(reg, &cubo.reg[i])==0){
+                *reg=cubo.reg[i];
+                posicion->posReg=i;
+                return 0;
+            }else if(cmpClave(reg, &cubo.reg[i])==-2){
+                printf("Error al comparar clave, parametros incorrectos");
+                return -5;
+            }
+        }
+    
+        
+        
+    }else{
+        tipoCubo cuboDes;
+        int numcuboD=0;
+        long posDesborde = sizeof(regConfig) + regC.nCubos * sizeof(tipoCubo);
+        fseek(fHash, posDesborde , SEEK_SET);
+        while(numcuboD < regC.nCubosDes){
+            
+            if(fread(&cuboDes, sizeof(tipoCubo), 1, fHash)!=1){
+                printf("Error al leer cubo de desborde %d\n", numcuboD);
+                return -2;
+            }
+            
+            
+            for(int i=0; i<cuboDes.numRegAsignados; i++){
+                if(cmpClave(reg, &cuboDes.reg[i])==0){
+                    *reg=cuboDes.reg[i];
+                    posicion->cuboDes=numcuboD;
+                    posicion->posReg=i;
+                    return 0;
+                }else if(cmpClave(reg, &cuboDes.reg[i])==-2){
+                    printf("Error al comparar clave, parametros incorrectos");
+                    return -5;
+                }
+            }
+
+            numcuboD++;
+            
+        }
+        
+        
+    }
+
+
+    return -1;
 
 }
 
 
 
 int modificarReg(FILE *fHash, tipoReg *reg, tPosicion *posicion){
+    if(fHash==NULL || reg==NULL || posicion==NULL){
+        return -5;
+    }
+
+    
+
+    regConfig regC;
+    fseek(fHash,0,SEEK_SET);
+    if(fread(&regC, sizeof(regConfig), 1, fHash)!= 1){
+        return -2;
+    }
+    
+    tipoCubo cubo;
+    int resultado=busquedaHash(fHash, reg, posicion);
+    if(resultado==0){
+        
+        
+
+        if(posicion->cuboDes==-1){
+            
+            fseek(fHash, sizeof(regConfig)+posicion->cubo*sizeof(tipoCubo), SEEK_SET);
+            if(fread(&cubo, sizeof(tipoCubo), 1, fHash)!=1){
+                return -2;
+            }
+
+            if (posicion->posReg < 0 || posicion->posReg >= cubo.numRegAsignados) {
+                printf("Posición de registro inválida\n");
+                return -5;
+            }
+
+            cubo.reg[posicion->posReg]=*reg;
+            fseek(fHash, sizeof(regConfig)+posicion->cubo*sizeof(tipoCubo), SEEK_SET);
+            if(fwrite(&cubo, sizeof(tipoCubo), 1, fHash)!=1){
+                return -2;
+            }
+
+        }else{
+
+            fseek(fHash, sizeof(regConfig)+(regC.nCubos + posicion->cuboDes)*sizeof(tipoCubo), SEEK_SET);
+            if(fread(&cubo, sizeof(tipoCubo), 1, fHash)!=1){
+                return -2;
+            }
+
+            if (posicion->posReg < 0 || posicion->posReg >= cubo.numRegAsignados) {
+                printf("Posición de registro inválida\n");
+                return -5;
+            }
+
+            cubo.reg[posicion->posReg]=*reg;
+            fseek(fHash, sizeof(regConfig)+(regC.nCubos + posicion->cuboDes)*sizeof(tipoCubo), SEEK_SET);
+            if(fwrite(&cubo, sizeof(tipoCubo), 1, fHash)!=1){
+                return -2;
+            }
 
 
+        }
+
+
+    }else if(resultado==-1){
+        return -1;
+    }else{
+        return -5;
+    }
+
+
+
+    return 0;
 
 }
