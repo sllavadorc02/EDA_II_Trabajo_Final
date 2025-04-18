@@ -60,13 +60,9 @@ int buscar(char *fichero, int codigo){
     switch (resultado)
     {
     case 0:
-        printf("La Asignatura es:\n");
+        
         mostrarReg(&regBusqueda);
-        printf("Asignatura encontrada en cubo %d\n", pos.cubo);
-        if(pos.cuboDes != -1){
-            printf("Desbordado en cubo %d\n", pos.cuboDes);
-        }
-        printf("En la posicion %d \n", pos.posReg);
+        printf("CUBO %d CUBODESBORDE %d posicion %d\n", pos.cubo, pos.cuboDes, pos.posReg);
 
         break;
     case -1:

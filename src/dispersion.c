@@ -379,55 +379,41 @@ int modificarReg(FILE *fHash, tipoReg *reg, tPosicion *posicion){
     }
     
     tipoCubo cubo;
+    long posi;
+    tipoReg modificado=*reg;
+    
     int resultado=busquedaHash(fHash, reg, posicion);
+    *reg=modificado;
     if(resultado==0){
-        
-        
 
         if(posicion->cuboDes==-1){
-            
-            fseek(fHash, sizeof(regConfig)+posicion->cubo*sizeof(tipoCubo), SEEK_SET);
-            if(fread(&cubo, sizeof(tipoCubo), 1, fHash)!=1){
-                return -2;
-            }
-
-            if (posicion->posReg < 0 || posicion->posReg >= cubo.numRegAsignados) {
-                printf("Posición de registro inválida\n");
-                return -5;
-            }
-
-            cubo.reg[posicion->posReg]=*reg;
-            fseek(fHash, sizeof(regConfig)+posicion->cubo*sizeof(tipoCubo), SEEK_SET);
-            if(fwrite(&cubo, sizeof(tipoCubo), 1, fHash)!=1){
-                return -2;
-            }
-
+            posi=sizeof(regConfig)+posicion->cubo*sizeof(tipoCubo);
         }else{
-
-            fseek(fHash, sizeof(regConfig)+(regC.nCubos + posicion->cuboDes)*sizeof(tipoCubo), SEEK_SET);
-            if(fread(&cubo, sizeof(tipoCubo), 1, fHash)!=1){
-                return -2;
-            }
-
-            if (posicion->posReg < 0 || posicion->posReg >= cubo.numRegAsignados) {
-                printf("Posición de registro inválida\n");
-                return -5;
-            }
-
-            cubo.reg[posicion->posReg]=*reg;
-            fseek(fHash, sizeof(regConfig)+(regC.nCubos + posicion->cuboDes)*sizeof(tipoCubo), SEEK_SET);
-            if(fwrite(&cubo, sizeof(tipoCubo), 1, fHash)!=1){
-                return -2;
-            }
-
-
+            posi=sizeof(regConfig)+(regC.nCubos + posicion->cuboDes)*sizeof(tipoCubo);
         }
 
+        fseek(fHash, posi, SEEK_SET);
+        if(fread(&cubo, sizeof(tipoCubo), 1, fHash)!=1){
+            return -2;
+            
+        }
 
-    }else if(resultado==-1){
-        return -1;
+        if (posicion->posReg < 0 || posicion->posReg >= cubo.numRegAsignados) {
+            printf("Posición de registro inválida\n");
+            return -5;
+        }
+
+        cubo.reg[posicion->posReg]=*reg;
+        fseek(fHash, posi, SEEK_SET);
+        if(fwrite(&cubo, sizeof(tipoCubo), 1, fHash)!=1){
+            return -2;
+        }
+        fflush(fHash);
+
+
+
     }else{
-        return -5;
+        return resultado;
     }
 
 

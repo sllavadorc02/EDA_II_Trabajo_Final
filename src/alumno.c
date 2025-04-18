@@ -8,7 +8,7 @@ int funcionHash(tAlumno *reg,int nCubos){
         return -1;
     }
 
-    int num=atoi(reg->dni);
+    long num=atoi(reg->dni);
     return num % nCubos;
 
 }
@@ -28,6 +28,7 @@ int cmpClave(tAlumno *reg1, tAlumno *reg2){
         printf("Registro inválido\n");
         return -2;
     }
+
     return strcmp(reg1->dni, reg2->dni);
 }
 
@@ -39,21 +40,18 @@ int buscar(char *fichero, char *dni){
     }
 
     tAlumno regBusqueda;
-    strncpy(regBusqueda.dni, dni, sizeof(regBusqueda.dni));
+    strncpy(regBusqueda.dni, dni, sizeof(regBusqueda.dni)-1);
+    regBusqueda.dni[sizeof(regBusqueda.dni) - 1] = '\0'; // Asegurar terminación nula
 
     tPosicion pos;
-
+    printf("Buscando DNI: '%s'\n", regBusqueda.dni);
     int resultado=busquedaHash(fHash, &regBusqueda, &pos);
     switch (resultado)
     {
     case 0:
-        printf("El alumno es :\n");
+        
         mostrarReg(&regBusqueda);
-        printf("Alumno encontrado en cubo %d\n", pos.cubo);
-        if(pos.cuboDes != -1){
-            printf("Desbordado en cubo %d\n", pos.cuboDes);
-        }
-        printf("En la posicion %d \n", pos.posReg);
+        printf("CUBO %d CUBODESBORDE %d posicion %d\n", pos.cubo, pos.cuboDes, pos.posReg);
 
         break;
     case -1:
@@ -90,18 +88,19 @@ int modificar(char *fichero, char *dni,char *provincia){
         return -1;
     }
 
-    tAlumno alumno;
+    tAlumno alumno={0};
     tPosicion pos;
     strncpy(alumno.dni, dni, sizeof(alumno.dni));
     
+    printf("Buscando DNI: %s\n", dni); // Depuración
     int resultado=busquedaHash(fHash, &alumno, &pos);
     if(resultado!=0){
         fclose(fHash);
-        if(resultado==-1){
-            return -1;
-        }
+        printf("Error %d en la funcion buscar\n", resultado);
         return resultado;
     }
+
+    printf("Registro encontrado: DNI=%s, Provincia=%s\n", alumno.dni, alumno.provincia); // Depuración
 
     strncpy(alumno.provincia, provincia, sizeof(alumno.provincia));
     resultado=modificarReg(fHash, &alumno, &pos);
