@@ -186,6 +186,12 @@ int insertar(FILE *f, tipoReg *reg, regConfig *regC){
             return -2;
         }
         regC->numReg++;
+        fseek(f,0,SEEK_SET);
+        if(fwrite(regC, sizeof(regConfig), 1, f)!=1){
+            printf("Error al escribir cubo...\n");
+            return -2;
+        }
+
         return 0;
     }else{
         cubo.desbordado=1;
@@ -204,8 +210,6 @@ int insertar(FILE *f, tipoReg *reg, regConfig *regC){
 int desborde(FILE *fHash, tipoReg *reg, regConfig *regC){
     tipoCubo cubo;
     
-
-
     long posicion=sizeof(regConfig)+(regC->nCuboDesAct)*sizeof(tipoCubo);
     fseek(fHash,posicion, SEEK_SET);
     if(fread(&cubo, sizeof(tipoCubo), 1, fHash)!=1){
