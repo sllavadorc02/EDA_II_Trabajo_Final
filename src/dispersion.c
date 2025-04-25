@@ -310,55 +310,50 @@ int busquedaHash(FILE *fHash, tipoReg *reg, tPosicion *posicion){
 
     posicion->cubo=numcubo; //numero de cubo
     posicion->cuboDes=-1;
-    if(cubo.desbordado==0){
-        //no está desbordado
+    
+    //no está desbordado
+    for(int i=0; i<cubo.numRegAsignados; i++){
+        if(cmpClave(reg, &cubo.reg[i])==0){
+            *reg=cubo.reg[i];
+            posicion->posReg=i;
+            return 0;
+        }else if(cmpClave(reg, &cubo.reg[i])==-2){
+            printf("Error al comparar clave, parametros incorrectos");
+            return -5;
+        }
+    }
+    
         
-        for(int i=0; i<cubo.numRegAsignados; i++){
-            if(cmpClave(reg, &cubo.reg[i])==0){
-                *reg=cubo.reg[i];
+        
+    
+    tipoCubo cuboDes;
+    int numcuboD=0;
+    long posDesborde = sizeof(regConfig) + regC.nCubos * sizeof(tipoCubo);
+    fseek(fHash, posDesborde , SEEK_SET);
+    while(numcuboD < regC.nCubosDes){
+            
+        if(fread(&cuboDes, sizeof(tipoCubo), 1, fHash)!=1){
+            printf("Error al leer cubo de desborde %d\n", numcuboD);
+            return -2;
+        }
+            
+            
+        for(int i=0; i<cuboDes.numRegAsignados; i++){
+            if(cmpClave(reg, &cuboDes.reg[i])==0){
+                *reg=cuboDes.reg[i];
+                posicion->cuboDes=numcuboD;
                 posicion->posReg=i;
                 return 0;
-            }else if(cmpClave(reg, &cubo.reg[i])==-2){
+            }else if(cmpClave(reg, &cuboDes.reg[i])==-2){
                 printf("Error al comparar clave, parametros incorrectos");
                 return -5;
             }
         }
-    
-        
-        
-    }else{
-        tipoCubo cuboDes;
-        int numcuboD=0;
-        long posDesborde = sizeof(regConfig) + regC.nCubos * sizeof(tipoCubo);
-        fseek(fHash, posDesborde , SEEK_SET);
-        while(numcuboD < regC.nCubosDes){
-            
-            if(fread(&cuboDes, sizeof(tipoCubo), 1, fHash)!=1){
-                printf("Error al leer cubo de desborde %d\n", numcuboD);
-                return -2;
-            }
-            
-            
-            for(int i=0; i<cuboDes.numRegAsignados; i++){
-                if(cmpClave(reg, &cuboDes.reg[i])==0){
-                    *reg=cuboDes.reg[i];
-                    posicion->cuboDes=numcuboD;
-                    posicion->posReg=i;
-                    return 0;
-                }else if(cmpClave(reg, &cuboDes.reg[i])==-2){
-                    printf("Error al comparar clave, parametros incorrectos");
-                    return -5;
-                }
-            }
 
-            numcuboD++;
+        numcuboD++;
             
-        }
-        
-        
     }
-
-
+        
     return -1;
 
 }

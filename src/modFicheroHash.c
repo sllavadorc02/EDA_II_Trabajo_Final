@@ -11,11 +11,11 @@ int main()
  
 
 	#ifdef ALUM 
-		error = buscar("../datos/alumnosC.hash","8663873");
+		error = buscar("../datos/alumnosC.hash","11592038");
 		if (error)  printf("Error %d en la función bucar\n", error);
-		error = modificar("../datos/alumnosC.hash","8663873","Sevilla");
+		error = modificar("../datos/alumnosC.hash","11592038","Sevilla");
 		if (error)  printf("Error %d en la función modificar\n", error);	
-		error = buscar("../datos/alumnosC.hash","8663873");
+		error = buscar("../datos/alumnosC.hash","11592038");
 
 		
 	#endif  	

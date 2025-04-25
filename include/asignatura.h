@@ -11,10 +11,11 @@ typedef struct {
 	char cuatrimestre;
 	int numGrT;
 	int numGrP;
-	} tAsignatura;
+} tAsignatura;
 int funcionHash(tAsignatura *reg,int nCubos);
 void mostrarReg(tAsignatura *reg);
 int cmpClave(tAsignatura *reg1, tAsignatura *reg2);
 int buscar(char *fichero, int codigo);
 int modificar(char *fichero, int codigo,float creditosT, float creditosP);
+int inserta(char *fichero, tAsignatura *reg);
 #endif

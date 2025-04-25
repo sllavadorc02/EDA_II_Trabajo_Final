@@ -122,3 +122,37 @@ int modificar(char *fichero, int codigo,float creditosT, float creditosP){
 
     return resultado;
 }
+
+
+
+int inserta(char *fichero, tAsignatura *reg){
+    if (fichero == NULL || reg == NULL) {
+        printf("Error: Parámetros inválidos\n");
+        return -5;
+    }
+
+    FILE *fHash=fopen(fichero, "r+b");
+    if(fHash ==NULL){
+        printf("Error al abrir fichero hash\n");
+        return -1;
+    }
+
+    regConfig regC;
+    fseek(fHash, 0, SEEK_SET);
+    if(fread(&regC, sizeof(regConfig), 1, fHash)!=1){
+        printf("Error al leer regConfig\n");
+        return -1;
+    }
+
+    int err=insertar(fHash, reg, &regC);
+    if(err==0){
+        printf("Asignatura insertada con exito\n\n");
+    }else{
+        printf("Error %d de la funcion insertar...", err);
+    }
+
+    fclose(fHash);
+    return err;
+
+
+}
